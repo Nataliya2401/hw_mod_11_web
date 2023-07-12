@@ -1,0 +1,49 @@
+[tool.poetry]
+name = "m09-12-01"
+version = "0.1.0"
+description = ""
+authors = ["Yuriy Kuchma <krabatua@gmail.com>"]
+readme = "README.md"
+packages = [{include = "m09_12_01"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.95.0"
+sqlalchemy = "^2.0.9"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+uvicorn = "^0.21.1"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "mod-11-web"
+version = "0.1.0"
+description = ""
+authors = ["Nataliya2401 <sabotab2000@gmail.com>"]
+readme = "README.md"
+packages = [{include = "mod_11_web"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+uvicorn = {extras = ["standard"], version = "^0.22.0"}
+fastapi = "^0.99.1"
+sqlalchemy = ">=2.0.17"
+pydantic = {version = ">=1.10.10", extras = ["email"]}
+psycopg2 = "^2.9.6"
+alembic = "^1.11.1"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqampqQGV4YW1wbGUuY29tIiwiaWF0IjoxNjg5MTAyNzcwLCJleHAiOjE2ODkxMDM2NzAsInNjb3BlIjoiYWNjZXNzX3Rva2VuIn0.CYtXbx5IsSEuAN9hSARw3UU7HSfWX_xtRG41UjftdrE
+
