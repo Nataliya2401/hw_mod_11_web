@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta
+import pickle
+import json
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+import redis
 
-from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer  # Bearer token
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 
@@ -17,6 +20,7 @@ class Auth:
     SECRET_KEY = "SECRET_KEY"
     ALGORITHM = "HS256"
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+    r = redis.Redis(host='localhost', port=6379, db=0)
 
     def verify_password(self, plain_password, hashed_password):
         return self.pwd_context.verify(plain_password, hashed_password)
@@ -63,7 +67,16 @@ class Auth:
         except JWTError as e:
             raise credentials_exception
 
-        user = await repo_users.get_user_by_email(email, db)
+        # user = await repo_users.get_user_by_email(email, db)
+        user = self.r.get(f"user:{email}")
+        if user is None:
+            user = await repo_users.get_user_by_email(email, db)
+            if user is None:
+                raise credentials_exception
+            self.r.set(f"user:{email}", pickle.dumps(user))
+            self.r.expire(f"user:{email}", 900)
+        else:
+            user = pickle.loads(user)
         if user is None:
             raise credentials_exception
         return user
@@ -77,6 +90,25 @@ class Auth:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid scope for token')
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials')
+
+    def create_email_token(self, data: dict):
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(days=7)
+        to_encode.update({"iat": datetime.utcnow(), "exp": expire, "scope": "email_token"})
+        token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+        return token
+
+    def get_email_from_token(self, token: str):
+        try:
+            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            if payload['scope'] == 'email_token':
+                email = payload['sub']
+                return email
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid scope for token')
+        except JWTError as e:
+            print(e)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="Invalid token for email verification")
 
 
 auth_service = Auth()

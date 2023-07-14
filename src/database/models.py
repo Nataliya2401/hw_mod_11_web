@@ -35,6 +35,7 @@ class User(Base):
     refresh_token = Column(String(255), nullable=True)
     avatar = Column(String(255), nullable=True)
     roles = Column('role', Enum(Role), default=Role.user)
+    confirmed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
