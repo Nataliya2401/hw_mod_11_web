@@ -1,6 +1,9 @@
 from typing import List
 
 from fastapi import Path, Query, Depends, HTTPException, status, APIRouter
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+
 from sqlalchemy.orm import Session
 
 from src.database.db import get_db
@@ -18,7 +21,8 @@ allowed_operation_update = RoleAccess([Role.admin, Role.moderator, Role.user])
 allowed_operation_remove = RoleAccess([Role.admin])
 
 
-@router.get("/", response_model=List[ContactResponse], dependencies=[Depends(allowed_operation_get)],
+@router.get("/", response_model=List[ContactResponse], description='No more than 10 requests per minute',
+            dependencies=[Depends(allowed_operation_get), Depends(RateLimiter(times=10, seconds=60))],
             name="=====My Contacts:=====")
 async def get_contacts(limit: int = Query(10, le=100), offset: int = 0,
                        current_user: User = Depends(auth_service.get_current_user),
@@ -97,5 +101,3 @@ async def remove_contact(contact_id: int = Path(ge=1), current_user: User = Depe
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
     return contact
-
-

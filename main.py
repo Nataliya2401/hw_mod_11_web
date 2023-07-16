@@ -1,14 +1,49 @@
 import time
+from ipaddress import ip_address
+from typing import Callable
+import redis.asyncio as redis
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, status
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from src.database.db import get_db
-from src.routes import contacts, auth # підклюення роутів до апі
+from src.routes import contacts, auth, users  # підключення роутів до апі
+from src.conf.config import settings
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+ALLOWED_IPS = [ip_address('192.168.1.0'), ip_address('172.16.0.0'), ip_address("127.0.0.1")]
+
+
+@app.middleware("http")
+async def limit_access_by_ip(request: Request, call_next: Callable):
+    ip = ip_address(request.client.host)
+    if ip not in ALLOWED_IPS:
+        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": "Not allowed IP address"})
+    response = await call_next(request)
+    return response
+
+
+@app.on_event("startup")
+async def startup():
+    r = await redis.Redis(host=settings.redis_host, port=settings.redis_port, db=0)
+    await FastAPILimiter.init(r)
 
 
 @app.middleware('http')
@@ -20,13 +55,14 @@ async def custom_middleware(request: Request, call_next):
     response.headers['performance'] = str(during)
     return response
 
+
 # TODO: read
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello!!!"}
+@app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
+async def index():
+    return {"msg": "Hello!!!!"}
 
 
 @app.get("/api/healthchecker")
@@ -44,3 +80,4 @@ def healthchecker(db: Session = Depends(get_db)):
 
 app.include_router(auth.router, prefix='/api')
 app.include_router(contacts.router, prefix='/api')  # підключення роутів до апі
+app.include_router(users.router, prefix='/api')
