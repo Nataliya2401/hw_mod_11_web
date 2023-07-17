@@ -28,6 +28,7 @@ cloudinary = "^1.33.0"
 [tool.poetry.group.dev.dependencies]
 sphinx = "^7.0.1"
 pytest = "^7.4.0"
+httpx = "^0.24.1"
 
 [build-system]
 requires = ["poetry-core"]

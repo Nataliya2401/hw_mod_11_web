@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     cloudinary_name: str = 'name'
     cloudinary_api_key: int = 154468525541985
     cloudinary_api_secret: str = 'secret'
+    main_host: str = '127.0.0.1'
+    main_port: int = 8000
 
     class Config:
         env_file = ".env"
