@@ -13,8 +13,7 @@ router = APIRouter(prefix='/auth', tags=["auth"])
 security = HTTPBearer()
 
 
-@router.post("/signup", response_model=UserResponse, description='No more than 5 requests per minute',
-             dependencies=[Depends(RateLimiter(times=5, seconds=60)), ], status_code=status.HTTP_201_CREATED)
+@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def signup(body: UserModel, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db)):
     """
      Create new user. If user with this email exists, raise 409 error
@@ -25,6 +24,9 @@ async def signup(body: UserModel, background_tasks: BackgroundTasks, request: Re
     :param db: Session: Get the database session
     :return: A dictionary with the user. Response with 201 status code.
     """
+
+    # description='No more than 5 requests per minute',  dependencies=[Depends(RateLimiter(times=5, seconds=60))
+
     exist_user = await repo_users.get_user_by_email(body.email, db)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
