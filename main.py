@@ -2,6 +2,7 @@ import time
 from ipaddress import ip_address
 from typing import Callable
 import redis.asyncio as redis
+import uvicorn
 
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi_limiter import FastAPILimiter
@@ -28,11 +29,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix='/api')
+app.include_router(contacts.router, prefix='/api')  # підключення роутів до апі
+app.include_router(users.router, prefix='/api')
+
+
 ALLOWED_IPS = [ip_address('192.168.1.0'), ip_address('172.16.0.0'), ip_address("127.0.0.1")]
 
 
 @app.middleware("http")
 async def limit_access_by_ip(request: Request, call_next: Callable):
+    """
+    The limit_access_by_ip function is a middleware function that limits access to the API by IP address.
+    It checks if the client's IP address is in ALLOWED_IPS, and if not, returns a 403 Forbidden response.
+
+    :param request: Request: Get the client's ip address
+    :param call_next: Callable: Pass the next function in the chain of middleware
+    :return: A json-response object
+    """
     ip = ip_address(request.client.host)
     if ip not in ALLOWED_IPS:
         return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": "Not allowed IP address"})
@@ -61,7 +75,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/", dependencies=[Depends(RateLimiter(times=2, seconds=5))])
-async def index():
+async def main():
+    """
+    The main function return welcome <Hello!!!> message
+    :return: dictionary with message
+    """
     return {"msg": "Hello!!!!"}
 
 
@@ -78,6 +96,8 @@ def healthchecker(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error connecting to the database")
 
 
-app.include_router(auth.router, prefix='/api')
-app.include_router(contacts.router, prefix='/api')  # підключення роутів до апі
-app.include_router(users.router, prefix='/api')
+
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)
